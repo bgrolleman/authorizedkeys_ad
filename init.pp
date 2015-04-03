@@ -1,0 +1,3 @@
+user { 'sshkeys':
+  ensure => 'present'
+}
