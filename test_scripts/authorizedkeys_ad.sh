@@ -1,0 +1,7 @@
+#!/bin/bash
+# Very simple script to test the AuthorizedKeysCommand
+# Simply log's the arguments and returns one public key for testing
+# WARNING: Do not put on production servers, this key is returned for all
+# users except root
+echo "Running script with args $@" >> /root/authorizedkeys_ad.log
+echo "ssh-dss AAAAB3NzaC1kc3MAAACBAMirrFdImuHkFDbJ/5Xz1MuJO/PCC7anjEpxsByQYCHRqXE+/Ezwc1Q1LcgGRxtwKlQchM9ADVVBEfjJ28ICg7wJCjXQuCtHFCvAPovjx9QHlHU0E8LBxxworCeecidOWhacGvnEFzNlJCqmLa+8nZiD0yxO+d2o5Acp+zGPKLkZAAAAFQCEGcxI6CCbona/L6M6VXFru8TCFQAAAIEAgPGNrImeQPIgICl2H9sAMtjHceGCx9RyMyYpvn9z8lwLVrN9zeW0PF6czjrK2b6arDtnOFhG86clYgc8D2Yhswr/aSa3eBUohe8IDRR+yiRvpe07ApFjtvGxgBkjVxBIXe2yHxhsakjs77DaPsdmMwuh3TZKQ2RxWQraiu4ANNIAAACABP1T8Vnjq4ugwYzBa+MTg183rV72MhHGaabp8cFgiXmUbsvhBvgb8shYut+dJsr9b26KwgbkmNvYl0HpVcBJ5KBMCgmL1vjQ4km5Jlv+Pnhs8egItIv6tYL49KE6lEdNmDXCYzKILgG5iLPiqw05jYVmPN5wUcgbFmaVKm5ZUFk= bgrolleman@bgrolleman-lt"
