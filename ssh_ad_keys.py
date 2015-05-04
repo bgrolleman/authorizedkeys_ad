@@ -13,13 +13,15 @@ import sys
 import ldap
 import ConfigParser
 import sqlite3
+import os
 
 ### Fetch Configuration ###
+workdir = os.path.dirname(os.path.realpath(__file__))
 config = ConfigParser.ConfigParser({
   'port': '389',
-  'dbfile': 'ssh_ad_keys.db'
+  'dbfile': '%s/ssh_ad_keys.db' % workdir
 })
-config.read(['ssh_ad_keys.cfg','/etc/ssh_ad_keys.cfg'])
+config.read(['%s/ssh_ad_keys.cfg' % workdir,'/etc/ssh_ad_keys.cfg'])
 ad_server = config.get('ad','server')
 ad_port = config.get('ad','port')
 ad_user = config.get('ad','user')
@@ -44,17 +46,23 @@ def connect():
 
 ### Fetch Mode ###
 def fetch(user):
+    # Check if user has domain and strip it
+    if ( user.find('+') > 0 ):
+      user = user.split('+')[1]
     log('Fetch Mode')
     ad = connect()
     log('  Search Filter (&(objectClass=user)(sAMAccountName=%s))' % user)
     results = ad.search_s(ad_base,ldap.SCOPE_SUBTREE,filterstr='(&(objectClass=user)(sAMAccountName=%s))' % user)
-    log(results[0][1]['altSecurityIdentities'])
-    keys = results[0][1]['altSecurityIdentities']
-    for key in keys:
-      if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
-        key = key.replace('SSHKey:','',1)
-        key = key.replace('sshPublicKey:','',1)
-        print key
+    for result in results:
+      if result[0]:
+        log(result)
+        keys = results[0][1]['altSecurityIdentities']
+        for key in keys:
+          if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
+            key = key.replace('SSHKey:','',1)
+            key = key.replace('sshPublicKey:','',1)
+            print key
+    sys.exit(0)
 
 ### Test AD Mode ###
 def testad():
@@ -82,7 +90,7 @@ if ( len(sys.argv) == 2 ):
   if not sys.argv[1].startswith('-') and not sys.argv[1] == 'testad':
     debug = 0
     fetch(sys.argv[1])
-    exit(0)
+    sys.exit(0)
 
 # More arguments then parse
 args = parser.parse_args()
