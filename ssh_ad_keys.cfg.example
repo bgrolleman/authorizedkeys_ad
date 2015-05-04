@@ -1,0 +1,11 @@
+[ad]
+# Server IP/Name and Port
+server: 127.0.0.1
+port: 389
+
+# Credentials to login to AD, best to have a dedicated read-only user for this
+user: <DOMAIN>\Administrator
+password: example
+
+# Start to search for users
+base: dc=<DOMAIN>,dc=com
