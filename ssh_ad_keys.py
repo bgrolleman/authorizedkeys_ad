@@ -3,10 +3,6 @@
 # Description: Fetch Public SSH Keys from Active Directory
 # Author: Bas Grolleman <bgrolleman@emendo-it.nl>
 #
-### Variables ###
-# We want to move these to a configuration file
-description = 'Fetch Public SSH Keys from Active Directory'
-
 ### Import Libs ###
 import argparse
 import sys
@@ -49,19 +45,28 @@ def fetch(user):
     # Check if user has domain and strip it
     if ( user.find('+') > 0 ):
       user = user.split('+')[1]
+
+    # Going to Connect and fetch user from AD
     log('Fetch Mode')
     ad = connect()
     log('  Search Filter (&(objectClass=user)(sAMAccountName=%s))' % user)
     results = ad.search_s(ad_base,ldap.SCOPE_SUBTREE,filterstr='(&(objectClass=user)(sAMAccountName=%s))' % user)
+
+    # Scan Results
     for result in results:
+      # We get a few bogus lines we ignore
       if result[0]:
+        # Got a user, let's clear old cached keys
         log(result)
+        db.execute('delete from cached_keys where user = ?', (user,))
         keys = results[0][1]['altSecurityIdentities']
         for key in keys:
           if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
             key = key.replace('SSHKey:','',1)
             key = key.replace('sshPublicKey:','',1)
             print key
+            db.execute('insert into cached_keys values ( datetime("NOW"), ?, ? )', (user, key))
+    db.commit()
     sys.exit(0)
 
 ### Test AD Mode ###
