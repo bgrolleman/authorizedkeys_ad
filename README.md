@@ -46,4 +46,12 @@ Restart sshd daemon and try remote login
 * Discussion on logging in with SSH using AD as authentication - http://www.linuxquestions.org/questions/linux-enterprise-47/logging-in-via-ssh-while-authenticating-against-active-directory-618885/
 * sshd authorizedkeyscommand - http://www.sysadmin.org.au/index.php/2012/12/authorizedkeyscommand/
 
+## FAQ
+
+### I keep getting exit with 1 messages in my auth.log
+Try running the command by hand as the user configured in sshd, use the -d switch to get more debug info
+
+### I get write errors for the db file
+It should be owned user/group by the user running the script
+
 
