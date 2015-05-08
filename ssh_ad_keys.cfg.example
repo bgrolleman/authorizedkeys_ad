@@ -9,3 +9,12 @@ password: example
 
 # Start to search for users
 base: dc=<DOMAIN>,dc=com
+
+[db]
+# Database file, make sure this is read/write for the user running the script
+# If login with key fails this is the number one reason
+dbfile: /tmp/ssh_ad_keys.db
+
+# Timeout of cache using SQLLite3 notation
+# -1 minute , -1 hour, -1 day, -1 month
+cache_timeout: -3 months
