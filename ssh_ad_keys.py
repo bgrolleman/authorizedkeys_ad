@@ -1,15 +1,20 @@
 #!/usr/bin/env python
 #
-# Description: Fetch Public SSH Keys from Active Directory
+# Description: 
+#   Fetch Public SSH Keys from Active Directory
+#   Update local sqlite3 cache when succesfull
+#   If timeout of 2 seconds reached when accessing
+#   active directory use the sqlite3 cache file
+#
 # Author: Bas Grolleman <bgrolleman@emendo-it.nl>
 #
 ### Import Libs ###
-import argparse
 import sys
-import ldap
-import ConfigParser
-import sqlite3
 import os
+import argparse      # Used to parse Commandline
+import ldap          # Access Active Directory
+import ConfigParser  # Process Configuration file
+import sqlite3       # Access sqlite3 keys cache db
 
 ### Fetch Configuration ###
 workdir = os.path.dirname(os.path.realpath(__file__))
@@ -26,6 +31,8 @@ ad_password = config.get('ad','password')
 ad_base = config.get('ad','base')
 db_dbfile = config.get('db','dbfile')
 db_cache_timeout = config.get('db','cache_timeout')
+
+### Create database if it doesn't exist ###
 db = sqlite3.connect(db_dbfile)
 db.execute('''
   CREATE TABLE IF NOT EXISTS cached_keys (
@@ -48,40 +55,64 @@ def connect():
   log(ad.simple_bind_s(ad_user,ad_password))
   return ad
 
+### Fetch From Cache ###
+def fetch_cache(user):
+  # Simply Query the DB for keys that are not outdated
+  for row in db.execute('''
+    select Key 
+    from cached_keys 
+    where 
+      User = ? and 
+      Timestamp > datetime(\'now\',?)''',
+    (user, db_cache_timeout)
+  ):
+    print row[0]
+  sys.exit(0)
+
+### Fetch From Active Directory ##
+def fetch_active_directory(ad, user):
+  log('Search Filter (&(objectClass=user)(sAMAccountName=%s))' % user)
+  results = ad.search_s(ad_base,ldap.SCOPE_SUBTREE,filterstr='(&(objectClass=user)(sAMAccountName=%s))' % user)
+  
+  # Scan Results
+  for result in results:
+    # We get a few bogus lines we ignore
+    if result[0]:
+      # Got a user, let's clear old cached keys
+      log(result)
+
+      # Clean Cache only when user found, going to replace it now anyway
+      db.execute('DELETE FROM cached_keys WHERE User = ?', (user,))
+
+      # Print found keys and add to cache
+      keys = results[0][1]['altSecurityIdentities']
+      for key in keys:
+        if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
+          key = key.replace('SSHKey:','',1)
+          key = key.replace('sshPublicKey:','',1)
+          print key
+          db.execute('INSERT INTO cached_keys (User,Key) VALUES ( ? , ? )', (user, key))
+
+      # Save changes and exit
+      db.commit()
+      sys.exit(0)
+
 ### Fetch Mode ###
 def fetch(user):
     # Check if user has domain and strip it
     if ( user.find('+') > 0 ):
       user = user.split('+')[1]
-    log('Fetch Mode')
+    
+    log('Fetch Mode - Looking for user (%s)' % user)
     try:
       ad = connect()
     except:
-      log('Switch to cache')
-      # select * from cached_keys where Timestamp > datetime('now','-2 minute');
-      for row in db.execute('select Key from cached_keys where User = ? and Timestamp > datetime(\'now\',?)',(user, db_cache_timeout)):
-        print row[0]
-      sys.exit(0)
+      log('  Switch to cache')
+      fetch_cache(user)
 
-    log('  Search Filter (&(objectClass=user)(sAMAccountName=%s))' % user)
-    results = ad.search_s(ad_base,ldap.SCOPE_SUBTREE,filterstr='(&(objectClass=user)(sAMAccountName=%s))' % user)
+    log('  Use Active Directory')
+    fetch_active_directory(ad, user)
 
-    # Scan Results
-    for result in results:
-      # We get a few bogus lines we ignore
-      if result[0]:
-        # Got a user, let's clear old cached keys
-        log(result)
-        db.execute('DELETE FROM cached_keys WHERE User = ?', (user,))
-        keys = results[0][1]['altSecurityIdentities']
-        for key in keys:
-          if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
-            key = key.replace('SSHKey:','',1)
-            key = key.replace('sshPublicKey:','',1)
-            print key
-            db.execute('INSERT INTO cached_keys (User,Key) VALUES ( ? , ? )', (user, key))
-    db.commit()
-    sys.exit(0)
 
 ### Test AD Mode ###
 def testad():
