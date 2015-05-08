@@ -15,7 +15,8 @@ import os
 workdir = os.path.dirname(os.path.realpath(__file__))
 config = ConfigParser.ConfigParser({
   'port': '389',
-  'dbfile': '%s/ssh_ad_keys.db' % workdir
+  'dbfile': '%s/ssh_ad_keys.db' % workdir,
+  'cache_timeout': '-3 months'
 })
 config.read(['%s/ssh_ad_keys.cfg' % workdir,'/etc/ssh_ad_keys.cfg'])
 ad_server = config.get('ad','server')
@@ -24,8 +25,15 @@ ad_user = config.get('ad','user')
 ad_password = config.get('ad','password')
 ad_base = config.get('ad','base')
 db_dbfile = config.get('db','dbfile')
+db_cache_timeout = config.get('db','cache_timeout')
 db = sqlite3.connect(db_dbfile)
-db.execute('create table if not exists cached_keys ( date text, user text, key text )')
+db.execute('''
+  CREATE TABLE IF NOT EXISTS cached_keys (
+    ID INTEGER PRIMARY KEY,
+    Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    User TEXT,
+    Key TEXT
+  );''')
 
 ### Log Function ###
 def log(line):
@@ -45,10 +53,16 @@ def fetch(user):
     # Check if user has domain and strip it
     if ( user.find('+') > 0 ):
       user = user.split('+')[1]
-
-    # Going to Connect and fetch user from AD
     log('Fetch Mode')
-    ad = connect()
+    try:
+      ad = connect()
+    except:
+      log('Switch to cache')
+      # select * from cached_keys where Timestamp > datetime('now','-2 minute');
+      for row in db.execute('select Key from cached_keys where User = ? and Timestamp > datetime(\'now\',?)',(user, db_cache_timeout)):
+        print row[0]
+      sys.exit(0)
+
     log('  Search Filter (&(objectClass=user)(sAMAccountName=%s))' % user)
     results = ad.search_s(ad_base,ldap.SCOPE_SUBTREE,filterstr='(&(objectClass=user)(sAMAccountName=%s))' % user)
 
@@ -58,14 +72,14 @@ def fetch(user):
       if result[0]:
         # Got a user, let's clear old cached keys
         log(result)
-        db.execute('delete from cached_keys where user = ?', (user,))
+        db.execute('DELETE FROM cached_keys WHERE User = ?', (user,))
         keys = results[0][1]['altSecurityIdentities']
         for key in keys:
           if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
             key = key.replace('SSHKey:','',1)
             key = key.replace('sshPublicKey:','',1)
             print key
-            db.execute('insert into cached_keys values ( datetime("NOW"), ?, ? )', (user, key))
+            db.execute('INSERT INTO cached_keys (User,Key) VALUES ( ? , ? )', (user, key))
     db.commit()
     sys.exit(0)
 
