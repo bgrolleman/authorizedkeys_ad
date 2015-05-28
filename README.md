@@ -42,7 +42,7 @@ Now try fetching a user from AD in debug mode
 And test in production mode
 
 ```text
-./ssh\_ad\_keys.py <USER>
+./ssh_ad_keys.py <USER>
 ```
 
 If you want you can update the .cfg file to set a bogus AD ip and test timeout. 
