@@ -88,14 +88,18 @@ def fetch_active_directory(ad, user):
       if int(result[1]['userAccountControl'][0]) & 0b10 != 0:
 	log('User disabled, skipping')
       else:
-        # Print found keys and add to cache
-        keys = results[0][1]['altSecurityIdentities']
-        for key in keys:
-          if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
-            key = key.replace('SSHKey:','',1)
-            key = key.replace('sshPublicKey:','',1)
-            print key
-            db.execute('INSERT INTO cached_keys (User,Key) VALUES ( ? , ? )', (user, key))
+        # Only fetch the key if user has security identities set
+        if 'altSecurityIdentities' in results[0][1]:
+            # Print found keys and add to cache
+            keys = results[0][1]['altSecurityIdentities']
+            for key in keys:
+            if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
+                key = key.replace('SSHKey:','',1)
+                key = key.replace('sshPublicKey:','',1)
+                print key
+                db.execute('INSERT INTO cached_keys (User,Key) VALUES ( ? , ? )', (user, key))
+        else:
+            log('User has no security identities set, skipping')
 
       # Save changes and exit
       db.commit()
