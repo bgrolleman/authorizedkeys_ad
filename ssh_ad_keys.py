@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #
 # Description:
 #   Fetch Public SSH Keys from Active Directory
@@ -45,7 +45,7 @@ db.execute('''
 ### Log Function ###
 def log(line):
   if ( debug ):
-    print line
+    print(line)
 
 ### Connect to Active Directory Using LDAP ###
 def connect():
@@ -93,7 +93,7 @@ def fetch_active_directory(ad, user):
             # Print found keys and add to cache
             keys = results[0][1]['altSecurityIdentities']
             for key in keys:
-            if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
+              if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
                 key = key.replace('SSHKey:','',1)
                 key = key.replace('sshPublicKey:','',1)
                 print key
@@ -110,7 +110,7 @@ def fetch(user):
     # Check if user has domain and strip it
     if ( user.find('+') > 0 ):
       user = user.split('+')[1]
-    
+
     log('Fetch Mode - Looking for user (%s)' % user)
     try:
       ad = connect()
