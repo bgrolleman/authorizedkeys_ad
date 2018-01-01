@@ -86,20 +86,20 @@ def fetch_active_directory(ad, user):
 
       # Check if user is disabled, this is the 2nd bit in UserAccountControl
       if int(result[1]['userAccountControl'][0]) & 0b10 != 0:
-          log('User disabled, skipping')
+        log('User disabled, skipping')
       else:
         # Only fetch the key if user has security identities set
         if 'altSecurityIdentities' in results[0][1]:
-            # Print found keys and add to cache
-            keys = results[0][1]['altSecurityIdentities']
-            for key in keys:
-              if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
-                key = key.replace('SSHKey:','',1)
-                key = key.replace('sshPublicKey:','',1)
-                print(key)
-                db.execute('INSERT INTO cached_keys (User,Key) VALUES ( ? , ? )', (user, key))
+          # Print found keys and add to cache
+          keys = results[0][1]['altSecurityIdentities']
+          for key in keys:
+            if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
+              key = key.replace('SSHKey:','',1)
+              key = key.replace('sshPublicKey:','',1)
+              print(key)
+              db.execute('INSERT INTO cached_keys (User,Key) VALUES ( ? , ? )', (user, key))
         else:
-            log('User has no security identities set, skipping')
+          log('User has no security identities set, skipping')
 
       # Save changes and exit
       db.commit()
@@ -159,5 +159,6 @@ if ( len(sys.argv) == 1 ):
 
 if(args.mode == 'fetch'):
     fetch(args.user[0])
+
 if(args.mode == 'testad'):
     testad()
