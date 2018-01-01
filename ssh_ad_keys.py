@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #
 # Description:
 #   Fetch Public SSH Keys from Active Directory
@@ -66,7 +66,7 @@ def fetch_cache(user):
       Timestamp > datetime(\'now\',?)''',
     (user, db_cache_timeout)
   ):
-    print row[0]
+    print(row[0])
   sys.exit(0)
 
 ### Fetch From Active Directory ##
@@ -86,7 +86,7 @@ def fetch_active_directory(ad, user):
 
       # Check if user is disabled, this is the 2nd bit in UserAccountControl
       if int(result[1]['userAccountControl'][0]) & 0b10 != 0:
-	log('User disabled, skipping')
+          log('User disabled, skipping')
       else:
         # Only fetch the key if user has security identities set
         if 'altSecurityIdentities' in results[0][1]:
@@ -96,7 +96,7 @@ def fetch_active_directory(ad, user):
               if key.startswith('SSHKey:') or key.startswith('sshPublicKey'):
                 key = key.replace('SSHKey:','',1)
                 key = key.replace('sshPublicKey:','',1)
-                print key
+                print(key)
                 db.execute('INSERT INTO cached_keys (User,Key) VALUES ( ? , ? )', (user, key))
         else:
             log('User has no security identities set, skipping')
@@ -131,8 +131,8 @@ def testad():
 
 ### Parse Agruments ###
 parser = argparse.ArgumentParser(
-	formatter_class=argparse.RawDescriptionHelpFormatter,
-	description = '''Fetch Public SSH Keys from Active Directory
+  formatter_class=argparse.RawDescriptionHelpFormatter,
+  description = '''Fetch Public SSH Keys from Active Directory
 
 Operating Modes
   fetch	      This fetches the Public Keys for the user provided with the --user argument
